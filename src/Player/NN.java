@@ -39,18 +39,8 @@ public class NN {
     //endregion
 
     //region PROPAGATION
-
-
     /**
-     * Aktualisiert die Eingabe
-     * @param pEingabe ist die aktualisierte Eingabe
-     */
-    public void setInput(float[] pEingabe){
-        input = pEingabe;
-    }
-
-    /**
-     * Aktualisiert die Werte der Neuronen
+     * Propagation Method
      */
     public void propagation() {
         layers[0].setPreNeurons(input);
@@ -60,8 +50,6 @@ public class NN {
             layers[i].propagation();
         }
     }
-
-
     //endregion
 
     //region BACKPROPAGATION
@@ -134,6 +122,15 @@ public class NN {
     //endregion
 
     //region GETTER & SETTER
+
+    /**
+     * Updates the input
+     * @param input new input
+     */
+    public void setInput(float[] input){
+        this.input = input;
+    }
+
 
     /**
      * @return Saved accuracy

@@ -165,20 +165,18 @@ public class Ball {
         setRandVel();
     }
 
+    /**
+     * Sets the Balls velocity to random
+     */
     private void setRandVel(){
-        ArrayList<Integer> vels = new ArrayList<>();
-        for(int i = 2; i < 5;i++) vels.add(i);
-        int rand = (int) (Math.random()*vels.size());
-        int vel = vels.get(rand);
-        vels.remove(rand);
+        int minVel = 2;
+        int maxVel = 5-minVel;
+        int vel = (int) (Math.random()*maxVel+minVel);
 
-        boolean up = Math.random() > .5f;
-        boolean right = Math.random() > .5f;
-
-        if(up) velY = -vel;
+        if(Math.random() > .5f) velY = -vel;
         else velY = vel;
-        vel = vels.get((int) (Math.random() * vels.size()));
-        if(right) velX = vel;
+        vel = (int) (Math.random()*maxVel + minVel);
+        if(Math.random() > .5f) velX = vel;
         else velX = -vel;
     }
     //endregion

@@ -171,13 +171,10 @@ public class Ball {
     private void setRandVel(){
         int minVel = 2;
         int maxVel = 5-minVel;
-        int vel = (int) (Math.random()*maxVel+minVel);
-
-        if(Math.random() > .5f) velY = -vel;
-        else velY = vel;
-        vel = (int) (Math.random()*maxVel + minVel);
-        if(Math.random() > .5f) velX = vel;
-        else velX = -vel;
+        int velYAxis = (int) (Math.random()*maxVel+minVel);
+        int velXAxis = (int) (Math.random()*maxVel+minVel);
+        velY = (Math.random() > .5f) ? -velYAxis : velYAxis;
+        velX = (Math.random() > .5f) ? -velXAxis : velXAxis;
     }
     //endregion
 

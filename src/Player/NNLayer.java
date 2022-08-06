@@ -56,7 +56,7 @@ public class NNLayer {
      */
     public void propagation() {
         for(int i = 0; i < neuronCount; i++) {
-            neurons[i] = sigMoid(add(i) + biases[i]);
+            neurons[i] = reLU(add(i) + biases[i]);
         }
     }
 
@@ -78,23 +78,26 @@ public class NNLayer {
     //region ACTIVATION
 
     /**
-     * Activation Function: SigMoid
+     * Activation Function: ReLU
      * @param neuron value to be calculated
-     * @return result of the SigMoid function
+     * @return result of the ReLU function
      */
-    private float sigMoid(float neuron)
+    private float reLU(float neuron)
     {
-        return (float) (1 / (1 + Math.exp(-neuron)));
+        return Math.max(0,neuron * .1f);
+        //return (float) (1 / (1 + Math.exp(-neuron)));
     }
 
     /**
-     * Activation function: Derivative of SigMoid
+     * Activation function: Derivative of ReLU
      * @param neuron value to be calculated
-     * @return result of the derivative of the SigMoid function
+     * @return result of the derivative of the ReLU function
      */
-    private float sigMoidDerivative(float neuron)
+    private float reLUDerivative(float neuron)
     {
-        return (sigMoid(neuron) * (1- sigMoid(neuron)));
+        //return (sigMoid(neuron) * (1- sigMoid(neuron)));
+        if(neuron < 0) return 0;
+        else return .1f;
     }
 
     //endregion
@@ -146,12 +149,12 @@ public class NNLayer {
         if(isLastLayer) {
             //"targets" are the aims of each neuron
             for(int i = 0; i < neuronCount; i++) {
-                chain[i] = 2*(neurons[i] - targets[i]) * sigMoidDerivative(add(i) + biases[i]);
+                chain[i] = 2*(neurons[i] - targets[i]) * reLUDerivative(add(i) + biases[i]);
             }
         }else {
             //"targets" are the values of the previous Chain Rule
             for(int i = 0; i < neuronCount; i++) {
-                chain[i] = targets[i] * sigMoidDerivative(add(i) + biases[i]);
+                chain[i] = targets[i] * reLUDerivative(add(i) + biases[i]);
             }
         }
 

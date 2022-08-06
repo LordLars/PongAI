@@ -134,7 +134,9 @@ public class Ball {
                     aiL.updateAccuracy(true);
                 }
             }
-            velX = -velX;
+            int temp = velX;
+            setRandVel();
+            if(temp > 0 && velX > 0 || temp < 0 && velX < 0) velX = -velX;
         }else{
             justCollided--;
         }
@@ -160,9 +162,13 @@ public class Ball {
     private void reset() {
         x = startX;
         y = startY;
+        setRandVel();
+    }
+
+    private void setRandVel(){
         ArrayList<Integer> vels = new ArrayList<>();
         for(int i = 2; i < 5;i++) vels.add(i);
-        int rand = (int) (Math.random()*vels.stream().count());
+        int rand = (int) (Math.random()*vels.size());
         int vel = vels.get(rand);
         vels.remove(rand);
 
@@ -171,7 +177,7 @@ public class Ball {
 
         if(up) velY = -vel;
         else velY = vel;
-        vel = vels.get((int) (Math.random() * vels.stream().count()));
+        vel = vels.get((int) (Math.random() * vels.size()));
         if(right) velX = vel;
         else velX = -vel;
     }

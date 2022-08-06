@@ -3,9 +3,9 @@ package Main;
 public class Settings {
 
     public static boolean lernen = false;
-    public static int gameSpeed = 5;
+    public static int gameSpeed = 1;
     public static int aiCount = 1;
-    public static boolean withInput = true;
+    public static boolean withInput = false;
 
     //How many pictures it can learn until gets saved
     public static int maxAttemptCount = 400;

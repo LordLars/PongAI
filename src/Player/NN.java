@@ -1,27 +1,28 @@
 package Player;
 
-import Main.Action;
-import Main.Settings;
-
 import java.io.*;
+import java.util.Arrays;
 
 public class NN {
 
-    private float[] input;
     private NNLayer[] layers;
-    private final int NNLayerCount;
-    private final int NNLayerLength;
-    private final Action[] output;
-    private final int outputLength;
-    private final boolean withOutput;
+    private final Action[] outPutActions;
 
+    private float[] outputs;
+    private float accuracy;
+    private int guesses;
+    private int rightGuesses;
+    private final int[] layerSizes;
 
-    public NN(boolean withOutput) {
-        NNLayerCount = Settings.NNLayerCount;
-        NNLayerLength = Settings.NNLayerLength;
-        output = new Action[]{Action.Up,Action.Down,Action.None};
-        outputLength = output.length;
-        this.withOutput = withOutput;
+    private final ActivationFunction activationFunction;
+    private final float nLernRate;
+
+    public NN(int[] layerSizes, Action[] oOptions, ActivationType activation, float nLernRate) {
+        this.layerSizes = layerSizes;
+        this.outPutActions = oOptions;
+        this.nLernRate = nLernRate;
+        activationFunction = new ActivationFunction(activation);
+        buildLayers();
     }
 
     //region LAYER BUILDER
@@ -29,12 +30,10 @@ public class NN {
      * Builds Layers
      */
     public void buildLayers() {
-        layers = new NNLayer[NNLayerCount + 2];
-        layers[0] = new NNLayer(input.length, NNLayerLength, false);
-        for(int i = 1; i < layers.length - 1; i++) {
-            layers[i] = new NNLayer(NNLayerLength, NNLayerLength, false);
+        layers = new NNLayer[layerSizes.length-1];
+        for(int i = 0; i < layers.length; i++) {
+            layers[i] = new NNLayer(layerSizes[i], layerSizes[i+1],activationFunction, nLernRate);
         }
-        layers[layers.length - 1] = new NNLayer(NNLayerLength, outputLength, true);
     }
     //endregion
 
@@ -42,32 +41,39 @@ public class NN {
     /**
      * Propagation Method
      */
-    public void propagation() {
-        layers[0].setPreNeurons(input);
-        layers[0].propagation();
-        for(int i = 1; i < layers.length; i++) {
-            layers[i].setPreNeurons(layers[i-1].getNeurons());
-            layers[i].propagation();
+    public float[] propagation(float[] inputs) {
+        for(int i = 0; i < layers.length-1; i++){
+            inputs = layers[i].propagation(inputs);
         }
+        return outputs = layers[layers.length-1].propagation(inputs);
     }
     //endregion
 
     //region BACKPROPAGATION
     /**
      * Backpropagation method
+     * @param target targets of the AI
      */
-    public void backPropagation(int ballY, float playerY) {
-        float[] targets = new float[outputLength];
-        int max = 50; //distance to the center of the player the smaller, the more precise the AI gets
-        if(ballY < playerY - max) targets[0] = 1;
-        else if(ballY > playerY + max) targets[1] = 1;
-        else targets[2] = 1;
-        if(withOutput) output(targets);
+    public void backPropagation(Action target, boolean hit) {
+        float[] targets = new float[outputs.length];
+        int maxIndex = 0;
+        for(int i = 1; i < outputs.length; i++) if(outputs[i] > outputs[maxIndex]) maxIndex = i;
+        updateAccuracy(hit);
+        targets[Arrays.asList(outPutActions).indexOf(target)] = 1;
+        for(int i = 0; i < outputs.length; i++) targets[i] = 2*(outputs[i] - targets[i]);
 
         layers[layers.length - 1].backPropagation(targets);
-        for(int i = layers.length - 2; i >= 0; i--) {
-            layers[i].backPropagation(layers[i + 1].getNextChain());
-        }
+        for(int i = layers.length - 2; i >= 0; i--) layers[i].backPropagation(layers[i + 1].getNextChain());
+    }
+
+    /**
+     * Updates the Accuracy
+     * @param hit if the player hit the Ball
+     */
+    private void updateAccuracy(boolean hit){
+        guesses += 1;
+        if(hit) rightGuesses += 1;
+        accuracy = (float) rightGuesses / guesses * 100;
     }
 
     //endregion
@@ -77,26 +83,20 @@ public class NN {
     /**
      * Saves the AI
      */
-    public void save(float accuracy, String path) {
+    public void save(String path) {
         if(accuracy > getSavedAccuracy(path)){
             try {
                 FileOutputStream fos = new FileOutputStream(path);
                 BufferedOutputStream bf = new BufferedOutputStream(fos);
                 ObjectOutputStream obj = new ObjectOutputStream(bf);
-
                 NNData data = new NNData();
                 NNLayerData[] layerData = new NNLayerData[layers.length];
-                for(int i = 0; i < layers.length; i++){
-                    layerData[i] = layers[i].save();
-                }
+                for(int i = 0; i < layers.length; i++) layerData[i] = layers[i].save();
                 data.nnLayerData = layerData;
                 data.accuracy = accuracy;
                 obj.writeObject(data);
                 obj.close();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            } catch (IOException ignored) {}
         }
     }
 
@@ -108,30 +108,14 @@ public class NN {
             FileInputStream fis = new FileInputStream(path);
             BufferedInputStream bis = new BufferedInputStream(fis);
             ObjectInputStream ois = new ObjectInputStream(bis);
-
             NNData data = (NNData) ois.readObject();
-            for(int i = 0; i < layers.length; i++){
-                layers[i].load(data.nnLayerData[i]);
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
+            for(int i = 0; i < layers.length; i++) layers[i].load(data.nnLayerData[i]);
+        } catch (IOException | ClassNotFoundException ignored){}
     }
 
     //endregion
 
     //region GETTER & SETTER
-
-    /**
-     * Updates the input
-     * @param input new input
-     */
-    public void setInput(float[] input){
-        this.input = input;
-    }
-
-
     /**
      * @return Saved accuracy
      */
@@ -144,34 +128,24 @@ public class NN {
             NNData data = (NNData) ois.readObject();
             return data.accuracy;
 
-        } catch (IOException | ClassNotFoundException ignored) {
-
-        }
+        } catch (IOException | ClassNotFoundException ignored) {}
         return 0;
     }
 
-
     /**
-     * @return Output of the AI
+     * @return Output with the highest value
      */
     public Action getOutput(){
-        float[] output = layers[layers.length - 1].getNeurons();
         int maxIndex = 0;
-        for(int i = 1; i < output.length;i++) {
-            if(output[i] > output[maxIndex]) maxIndex = i;
-        }
-        return this.output[maxIndex];
+        for(int i = 1; i < outputs.length;i++) if(outputs[i] > outputs[maxIndex]) maxIndex = i;
+        return outPutActions[maxIndex];
     }
 
     /**
-     * Output of the last Layer
-     * @param targets aims of the AI
+     * @return Current accuracy
      */
-    private void output(float[] targets) {
-        float[] neuronen = layers[layers.length-1].getNeurons();
-        for(int i = 0; i < neuronen.length;i++) {
-            System.out.println("geschätzt: " + neuronen[i] + ", ziel: " + targets[i]);
-        }
+    public float getCurrentAccuracy(){
+        return accuracy;
     }
 
     //endregion

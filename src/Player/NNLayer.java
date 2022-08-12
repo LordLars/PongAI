@@ -1,7 +1,5 @@
 package Player;
 
-import Main.Settings;
-
 public class NNLayer {
 
     private float[][] weights;
@@ -9,27 +7,22 @@ public class NNLayer {
     private final float[] neurons;
     private int neuronCount;
 
-
     private int preNeuronCount;
     private float[] preNeurons;
     private float[] nextChain;
 
-
     private float[] chain;
     private final float lernRate;
 
-    private final boolean isLastLayer;
+    private final ActivationFunction activationFunction;
 
 
-    public NNLayer(int pPreNeuronCount, int pNeuronCount, boolean pIsLastLayer) {
-        preNeuronCount = pPreNeuronCount;
-        neuronCount = pNeuronCount;
-        weights = new float[pNeuronCount][preNeuronCount];
-        preNeurons = new float[preNeuronCount];
-        neurons = new float[pNeuronCount];
-        biases = new float[pNeuronCount];
-        lernRate = Settings.nLernRate;
-        isLastLayer = pIsLastLayer;
+    public NNLayer(int preNeuronCount, int neuronCount, ActivationFunction activationFunction, float nLernRate) {
+        this.preNeuronCount = preNeuronCount;
+        this.neuronCount = neuronCount;
+        this.activationFunction = activationFunction;
+        neurons = new float[neuronCount];
+        lernRate = nLernRate;
         buildLayer();
     }
 
@@ -38,13 +31,16 @@ public class NNLayer {
      * Builds a new Layer with random weights and biases
      */
     private void buildLayer() {
+        weights = new float[neuronCount][preNeuronCount];
+        biases = new float[neuronCount];
+
         for(int i = 0; i < neuronCount; i++) {
             for(int j = 0; j < preNeuronCount; j++) {
-                weights[i][j] = (float) (Math.random() * 2 - 1);
+                weights[i][j] = (float) (Math.random() * 2-1);
             }
         }
         for(int i = 0; i < neuronCount; i++) {
-            biases[i] = (float) (Math.random() * 2 - 1);
+            biases[i] = (float) (Math.random() * 2 -1);
         }
     }
     //endregion
@@ -54,10 +50,10 @@ public class NNLayer {
     /**
      * Propagation method
      */
-    public void propagation() {
-        for(int i = 0; i < neuronCount; i++) {
-            neurons[i] = reLU(add(i) + biases[i]);
-        }
+    public float[] propagation(float[] input) {
+        preNeurons = input;
+        for(int i = 0; i < neuronCount; i++) neurons[i] = activationFunction.activation(add(i) + biases[i]);
+        return neurons;
     }
 
     /**
@@ -67,37 +63,8 @@ public class NNLayer {
      */
     private float add(int index) {
         float sum = 0;
-        for(int j = 0; j < preNeurons.length; j++) {
-            sum += preNeurons[j] * weights[index][j];
-        }
+        for(int j = 0; j < preNeurons.length; j++) sum += preNeurons[j] * weights[index][j];
         return sum;
-    }
-
-    //endregion
-
-    //region ACTIVATION
-
-    /**
-     * Activation Function: ReLU
-     * @param neuron value to be calculated
-     * @return result of the ReLU function
-     */
-    private float reLU(float neuron)
-    {
-        return Math.max(0,neuron * .1f);
-        //return (float) (1 / (1 + Math.exp(-neuron)));
-    }
-
-    /**
-     * Activation function: Derivative of ReLU
-     * @param neuron value to be calculated
-     * @return result of the derivative of the ReLU function
-     */
-    private float reLUDerivative(float neuron)
-    {
-        //return (sigMoid(neuron) * (1- sigMoid(neuron)));
-        if(neuron < 0) return 0;
-        else return .1f;
     }
 
     //endregion
@@ -120,9 +87,7 @@ public class NNLayer {
     private void updateWeights(){
         for(int i = 0; i < neuronCount; i++) {
             for(int j = 0; j < preNeuronCount; j++) {
-                float preWeight = weights[i][j];
-                float weightChain = chain[i] * preNeurons[j];
-                weights[i][j] = preWeight - weightChain * lernRate;
+                weights[i][j] = weights[i][j] - chain[i] * preNeurons[j] * lernRate;
             }
         }
     }
@@ -131,11 +96,7 @@ public class NNLayer {
      * Updates the biases with the backpropagation method
      */
     private void updateBiases(){
-        for(int i = 0; i < neuronCount; i++) {
-            float preBias = biases[i];
-            float biasChain = chain[i];
-            biases[i] = preBias - biasChain * lernRate;
-        }
+        for(int i = 0; i < neuronCount; i++) biases[i] = biases[i] - chain[i] * lernRate;
     }
 
     /**
@@ -145,24 +106,10 @@ public class NNLayer {
     private void updateChain(float[] targets) {
         chain = new float[neuronCount];
         nextChain = new float[preNeuronCount];
-
-        if(isLastLayer) {
-            //"targets" are the aims of each neuron
-            for(int i = 0; i < neuronCount; i++) {
-                chain[i] = 2*(neurons[i] - targets[i]) * reLUDerivative(add(i) + biases[i]);
-            }
-        }else {
-            //"targets" are the values of the previous Chain Rule
-            for(int i = 0; i < neuronCount; i++) {
-                chain[i] = targets[i] * reLUDerivative(add(i) + biases[i]);
-            }
-        }
-
+        for(int i = 0; i < neuronCount; i++) chain[i] = targets[i] * activationFunction.activationDerivative(add(i) + biases[i]);
         for(int i = 0; i < preNeuronCount; i++) {
             float chainSum = 0;
-            for(int j = 0; j < neuronCount; j++) {
-                chainSum += chain[j] * weights[j][i];
-            }
+            for(int j = 0; j < neuronCount; j++) chainSum += chain[j] * weights[j][i];
             nextChain[i] = chainSum;
         }
     }
@@ -170,21 +117,6 @@ public class NNLayer {
     //endregion
 
     //region GETTER & SETTER
-
-    /**
-     * Updates the previous Neuron values
-     * @param pPreNeurons new previous Neuron values
-     */
-    public void setPreNeurons(float[] pPreNeurons) {
-        preNeurons = pPreNeurons;
-    }
-
-    /**
-     * @return Neurons
-     */
-    public float[] getNeurons() {
-        return neurons;
-    }
 
     /**
      * @return Values of the next Chain

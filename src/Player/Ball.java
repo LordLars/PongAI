@@ -89,28 +89,20 @@ public class Ball {
      * Border Collision
      */
     private void borderCollision(){
-        float maxX = (float) border.getMaxX() - 128;
-        float minX = (float) border.getMinX() - 128;
+        float maxX = (float) border.getMaxX() - 128*2;
+        float minX = (float) border.getMinX();
         float maxY = (float) border.getMaxY() - 200;
         float minY = (float) border.getMinY() - 128;
 
         if(y <= minY || y >= maxY) velY = -velY;
         else if(x < minX || x > maxX){
-            //Right
             if(velX > 0) {
                 guiManager.addScoresL();
-                if(aiR != null){
-                    aiR.backPropagation(y);
-                    aiR.updateAccuracy(false);
-                }
+                if(aiR != null && Settings.learn) aiR.backPropagation(y, false);
                 reset();
-                //Left
             }else if(velX < 0){
                 guiManager.addScoresR();
-                if(aiL != null){
-                    aiL.backPropagation(y);
-                    aiL.updateAccuracy(false);
-                }
+                if(aiL != null && Settings.learn) aiL.backPropagation(y, false);
                 reset();
             }
         }
@@ -122,18 +114,8 @@ public class Ball {
     private void playerCollision() {
         if((collidedWithPlayer(playerL) || collidedWithPlayer(playerR)) && justCollided < 0) {
             justCollided = 30;
-            if(velX > 0) {
-                if(aiR != null){
-                    aiR.backPropagation(y);
-                    aiR.updateAccuracy(true);
-                }
-
-            }else if(velX < 0){
-                if(aiL != null){
-                    aiL.backPropagation(y);
-                    aiL.updateAccuracy(true);
-                }
-            }
+            if(velX > 0 && aiR != null && Settings.learn) aiR.backPropagation(y, true);
+            else if(velX < 0 && aiL != null && Settings.learn) aiL.backPropagation(y, true);
             int temp = velX;
             setRandVel();
             if(temp > 0 && velX > 0 || temp < 0 && velX < 0) velX = -velX;

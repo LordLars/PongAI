@@ -1,4 +1,4 @@
-package Main;
+package Player;
 
 public enum Action {
 

@@ -17,11 +17,13 @@ public class Main{
         Player playerR = new Player(guiManager,1650,500, Settings.withInput);
         Ball ball = new Ball(guiManager,1000,500,playerL,playerR);
 
-        AI aiL = new AI(ball,playerL,false,"LeftAI", true);
+        AI aiL = new AI(ball,playerL,true);
+        aiL.start();
         ball.setAIL(aiL);
 
         if(!Settings.withInput){
-            AI aiR = new AI(ball,playerR,false,"RightAI", false);
+            AI aiR = new AI(ball,playerR,false);
+            aiR.start();
             ball.setAIR(aiR);
         }
 
